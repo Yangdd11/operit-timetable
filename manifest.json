@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "toolpkg_id": "com.xuruchang.timetable",
+  "version": "0.4.0",
+  "author": [
+    "许如常"
+  ],
+  "license": "MIT",
+  "main": "main.js",
+  "enabled_by_default": true,
+  "display_name": {
+    "zh": "📅 课表",
+    "en": "📅 Timetable"
+  },
+  "description": {
+      "zh": "整周格子视图（周一到周日 × 第 1-12 节，带午休 / 晚休分隔）+ 当天课程卡片，全部按「第几周」自动过滤（4-18 周、6-9 周、只上第 8 周这种都能认）。还能记放假（国庆、寒暑假）和调休补课日（周六照周四的课表上），放假日自动不排课、当天直接说「放假中」，补课日照排。上面一张可折叠月历，有课的日子点小圆点。数据只存本机。",
+      "en": "A class timetable: weekly grid view and per-day cards, filtered by teaching weeks (e.g. week 4-18, week 6-9, only week 8). Holidays (National Day, winter break) and make-up days (a Saturday following another weekday's timetable) can be recorded; holidays automatically clear classes. A collapsible month calendar on top with dots on days that have classes. Data stays on device."
+  },
+  "subpackages": [
+    {
+      "id": "timetable",
+      "entry": "packages/timetable.js",
+      "enabled_by_default": true,
+      "display_name": {
+        "zh": "📅 课表工具",
+        "en": "📅 Timetable Tools"
+      },
+      "description": {
+        "zh": "今天上什么课、这一周的课、下一节课、课程清单、设置",
+        "en": "Today, this week, next class, course list, config"
+      }
+    }
+  ],
+  "logo": "package_logo",
+  "resources": [
+    {
+      "key": "package_logo",
+      "path": "resources/logo.svg",
+      "mime": "image/svg+xml"
+    },
+    {
+      "key": "dashboard_html",
+      "path": "resources/dashboard/timetable.html",
+      "mime": "text/html"
+    },
+    {
+      "key": "courses_json",
+      "path": "resources/data/courses.json",
+      "mime": "application/json"
+    }
+  ]
+}
