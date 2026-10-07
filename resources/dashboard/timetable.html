@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>课表</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root,[data-theme="ink"]{--bg:#0C0C11;--card:#17171F;--cell:#22252A;--cell2:#1B1C22;--line:#2B2F35;
+  --t1:#F2F0EB;--t2:#97949F;--t3:#5E5B6B;--acc:#E8B647;--acc-soft:rgba(232,182,71,.14);--hol:#F0A857;
+  --shadow:0 1px 0 rgba(255,255,255,.03)}
+[data-theme="strawberry"]{--bg:#FFF6F8;--card:#FFFFFF;--cell:#FBEAF1;--cell2:#F6F1F4;--line:rgba(232,150,175,.28);
+  --t1:#4A3540;--t2:#9A7F8B;--t3:#BFA5AF;--acc:#F2789F;--acc-soft:rgba(242,120,159,.16);--hol:#C4613A;
+  --shadow:0 1px 2px rgba(232,150,175,.18)}
+[data-theme="mint"]{--bg:#F2F6F3;--card:#FFFFFF;--cell:#E7F0EA;--cell2:#EEF4F0;--line:rgba(120,160,140,.28);
+  --t1:#2C3A33;--t2:#7C8C84;--t3:#A6B4AC;--acc:#4E9C77;--acc-soft:rgba(78,156,119,.16);--hol:#A87332;
+  --shadow:0 1px 2px rgba(120,160,140,.16)}
+body{background:var(--bg);color:var(--t1);font-size:14px;line-height:1.45;
+  font-family:-apple-system,"PingFang SC","Noto Sans CJK SC",sans-serif;
+  padding:10px 10px 26px;overflow-x:hidden}
+.wrap{max-width:680px;margin:0 auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 2px 10px}
+.brand{display:flex;align-items:center;gap:7px;min-width:0}
+.brand svg{display:block;color:var(--t1);flex:none}
+.brand b{font-size:15px;font-weight:650;letter-spacing:.6px}
+.dots{display:flex;gap:9px;align-items:center;flex:none}
+.dot{width:16px;height:16px;border-radius:50%;border:1px solid var(--line);cursor:pointer;
+  transition:transform .12s ease}
+.dot:active{transform:scale(.88)}
+.dot[data-t="ink"]{background:#15151C}
+.dot[data-t="strawberry"]{background:#F2789F}
+.dot[data-t="mint"]{background:#4E9C77}
+.dot.on{outline:2px solid var(--acc);outline-offset:2px}
+.calcard{background:var(--card);border-radius:16px;padding:8px 10px 10px;box-shadow:var(--shadow);margin-bottom:10px}
+.calhead{display:flex;align-items:center;gap:6px;padding:2px 0 8px}
+.nav{width:30px;height:30px;border:0;border-radius:9px;background:var(--cell2);color:var(--t2);
+  font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.nav:active{background:var(--acc-soft);color:var(--acc)}
+#calTitle{flex:1;text-align:center;font-size:14.5px;font-weight:650;letter-spacing:.4px}
+.toggle{width:30px;height:30px;border:0;border-radius:9px;background:var(--acc-soft);color:var(--acc);
+  font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:transform .18s ease}
+.toggle.up{transform:rotate(180deg)}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:2px 0 4px}
+.wk span{text-align:center;font-size:10.5px;color:var(--t3);letter-spacing:.5px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.dcell{height:42px;border-radius:10px;background:var(--cell2);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;cursor:pointer;position:relative}
+.dcell:active{transform:scale(.95)}
+.dcell .dn{font-size:13px;color:var(--t2);font-variant-numeric:tabular-nums}
+.dcell .dw{font-size:9.5px;color:var(--t3);display:none}
+.dcell .dot{width:4px;height:4px;border-radius:2px;background:transparent}
+.dcell.has .dn{color:var(--t1);font-weight:600}
+.dcell.has .dot{background:var(--acc)}
+.dcell.blank{background:transparent;cursor:default}
+.dcell.today{background:var(--acc-soft)}
+.dcell.today .dn{color:var(--acc);font-weight:700}
+.dcell.sel,.dcell.sel.today{background:var(--acc)}
+.dcell.sel .dn,.dcell.sel.has .dn{color:#12130F;font-weight:700}
+.dcell.sel .dot{background:#12130F}
+.dcell.sel .dw{color:#12130F}
+.strip{display:none;grid-template-columns:repeat(7,1fr);gap:3px}
+.strip .dcell{height:52px}
+.strip .dcell .dw{display:block}
+body.calclosed .grid,body.calclosed .wk{display:none}
+body.calclosed .strip{display:grid}
+.tabs{display:flex;gap:8px;margin:0 0 10px}
+.tabs button{flex:1;height:36px;border:0;border-radius:11px;background:var(--card);color:var(--t2);
+  font-size:13.5px;font-weight:600;cursor:pointer;box-shadow:var(--shadow)}
+.tabs button.on{background:var(--acc);color:#12130F}
+.wkhead{display:flex;align-items:center;gap:6px;margin:0 0 8px}
+#wkTitle{flex:1;text-align:center;font-size:13px;font-weight:650;color:var(--acc);letter-spacing:.4px}
+.wkgrid{display:grid;grid-template-columns:36px repeat(7,1fr);gap:3px}
+.wh{text-align:center;padding:2px 0 5px}
+.wh b{display:block;font-size:10.5px;color:var(--t2);font-weight:600}
+.wh i{display:block;font-size:9.5px;color:var(--t3);font-style:normal;font-variant-numeric:tabular-nums}
+.wh.today b,.wh.today i{color:var(--acc)}
+.gut{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:2px 0}
+.gut b{font-size:10.5px;color:var(--t2);font-weight:600}
+.gut i{font-size:8px;color:var(--t3);font-style:normal;font-variant-numeric:tabular-nums}
+.sep{grid-column:1/-1;text-align:center;font-size:9.5px;color:var(--t3);letter-spacing:3px;
+  padding:3px 0;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);background:var(--cell2);
+  border-radius:6px}
+.cell{min-height:56px;border-radius:8px;background:var(--cell);padding:2px}
+.cell.today{background:var(--cell);box-shadow:inset 0 0 0 1px var(--acc-soft)}
+.c{background:var(--cc);color:#fff;border-radius:7px;padding:4px 3px;height:100%;min-height:52px;
+  display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;cursor:pointer}
+.c .cn{font-size:9.5px;line-height:1.14;font-weight:600;word-break:break-all}
+.c .cr{font-size:8px;opacity:.85;text-align:right;line-height:1.1}
+.dayhead{font-size:13px;color:var(--t2);margin:0 2px 8px;font-weight:600}
+.dayhead b{color:var(--t1);font-size:15px;margin-right:6px}
+.card{display:flex;background:var(--card);border-radius:13px;overflow:hidden;margin-bottom:8px;box-shadow:var(--shadow)}
+.card .bar{width:5px;background:var(--cc);flex:none}
+.card .cbody{padding:9px 11px;flex:1;min-width:0}
+.card .cn2{font-size:14.5px;font-weight:650;display:flex;align-items:center;flex-wrap:wrap;gap:2px}
+.card .cm{font-size:11.5px;color:var(--t2);margin-top:3px;font-variant-numeric:tabular-nums}
+.card .cm2{font-size:11.5px;color:var(--t3);margin-top:1px}
+.tag{font-size:10px;padding:1.5px 7px;border-radius:6px;background:var(--acc-soft);color:var(--acc);
+  font-weight:600;margin-left:4px}
+.tag.done{background:var(--cell);color:var(--t3)}
+.empty{color:var(--t3);text-align:center;padding:28px 0;font-size:13px}
+.empty span{display:block;font-size:26px;margin-bottom:8px;opacity:.7}
+.foot{color:var(--t3);font-size:10.5px;text-align:center;margin-top:16px;line-height:1.8}
+.hidden{display:none}
+.dcell.hol .dn{color:var(--hol);font-weight:600}
+.dcell.hol .dot{background:transparent;box-shadow:inset 0 0 0 1px var(--hol);width:5px;height:5px;border-radius:50%}
+.dcell.hol.sel .dn{color:#12130F;font-weight:700}
+.dcell.hol.sel .dot{background:#12130F;box-shadow:none}
+.wh.hol b{color:var(--hol)}
+.dcell.mk .dn{color:var(--acc);font-weight:700}
+.dcell.mk .dot{background:var(--acc)}
+.wh.mk b{color:var(--acc);font-size:9.5px}
+.cell.hol{background:var(--cell2)}
+.card.holc .cbody{padding:11px 13px}
+.card.holc .cm{font-size:11.5px;color:var(--t2);margin-top:4px;font-variant-numeric:tabular-nums}
+.card.holc .cm2{font-size:11.5px;color:var(--t3);margin-top:2px}
+</style>
+</head>
+<body class="calopen">
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2.6" y="4" width="18.8" height="16.4" rx="3.6"/>
+        <path d="M2.6 8.7h18.8"/>
+        <path d="M9 8.7v11.7"/>
+        <path d="M15 8.7v11.7"/>
+        <rect x="3.5" y="9.7" width="4.5" height="3.4" rx="1.1" fill="var(--acc)" stroke="none"/>
+        <rect x="15.9" y="14.5" width="4.5" height="3.4" rx="1.1" fill="var(--acc)" stroke="none"/>
+      </svg>
+      <b>课表</b>
+    </div>
+    <div class="dots" id="skinDots">
+      <span class="dot" data-t="ink" title="午夜金"></span>
+      <span class="dot" data-t="strawberry" title="草莓牛奶"></span>
+      <span class="dot" data-t="mint" title="雾薄荷"></span>
+    </div>
+  </div>
+
+  <div class="calcard">
+    <div class="calhead">
+      <button class="nav" id="mPrev">‹</button>
+      <div id="calTitle">—</div>
+      <button class="nav" id="mNext">›</button>
+      <button class="toggle up" id="calToggle">⌄</button>
+    </div>
+    <div class="wk" id="wkRow"></div>
+    <div class="grid" id="calGrid"></div>
+    <div class="strip" id="calStrip"></div>
+  </div>
+
+  <div class="tabs">
+    <button id="tabDay" class="on">今天</button>
+    <button id="tabWeek">整周</button>
+  </div>
+
+  <div id="weekView" class="hidden">
+    <div class="wkhead">
+      <button class="nav" id="wPrev">‹</button>
+      <div id="wkTitle">—</div>
+      <button class="nav" id="wNext">›</button>
+    </div>
+    <div class="wkgrid" id="wkGrid"></div>
+  </div>
+
+  <div id="dayView">
+    <div class="dayhead" id="dayTitle">—</div>
+    <div id="dayList"></div>
+  </div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>
+"use strict";
+var DATA = null, SEL = "", VIEW = "day", CALOPEN = true, TODAY = "";
+var WD = ["", "周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+
+function host(){ return window.TimetableHost || null; }
+function $(id){ return document.getElementById(id); }
+function pad2(n){ return (n < 10 ? "0" : "") + n; }
+function parseD(s){ var p = String(s).split("-"); return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])); }
+function fmtD(d){ return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
+function addD(s, n){ return fmtD(new Date(parseD(s).getTime() + n * 86400000)); }
+function wdOf(s){ var w = parseD(s).getDay(); return w === 0 ? 7 : w; }
+function diffDays(a, b){ return Math.round((parseD(a).getTime() - parseD(b).getTime()) / 86400000); }
+function weekOf(s){
+  if (!DATA || !DATA.meta || !DATA.meta.week1_monday) return 0;
+  return Math.floor(diffDays(s, DATA.meta.week1_monday) / 7) + 1;
+}
+function weekStartOf(s){
+  var off = diffDays(s, DATA.meta.week1_monday) % 7;
+  if (off < 0) off += 7;
+  return addD(s, -off);
+}
+function slotTime(n){
+  var ss = (DATA && DATA.meta && DATA.meta.slots) || [];
+  for (var i = 0; i < ss.length; i++) if (ss[i].n === n) return ss[i];
+  return null;
+}
+function slotLabel(a){
+  if (!a || !a.length) return "";
+  return a.length === 1 ? ("第" + a[0] + "节") : ("第" + a[0] + "-" + a[a.length - 1] + "节");
+}
+function parseWeeks(spec){
+  var total = Number((DATA.meta.weeks_total) || 18), out = [];
+  var s = String(spec == null ? "" : spec).trim();
+  if (!s) return out;
+  var parts = s.split(",");
+  for (var p = 0; p < parts.length; p++) {
+    var seg = parts[p].trim();
+    if (!seg) continue;
+    var par = 0;
+    if (/单$/.test(seg)) { par = 1; seg = seg.replace(/单$/, ""); }
+    else if (/双$/.test(seg)) { par = 2; seg = seg.replace(/双$/, ""); }
+    var a = 0, b = 0, m = /^(\d+)\s*-\s*(\d+)$/.exec(seg);
+    if (m) { a = Number(m[1]); b = Number(m[2]); }
+    else if (/^\d+$/.test(seg)) { a = b = Number(seg); }
+    else continue;
+    if (a > b) { var t = a; a = b; b = t; }
+    for (var w = a; w <= b; w++) {
+      if (w < 1 || w > total) continue;
+      if (par === 1 && w % 2 === 0) continue;
+      if (par === 2 && w % 2 === 1) continue;
+      if (out.indexOf(w) < 0) out.push(w);
+    }
+  }
+  out.sort(function (x, y) { return x - y; });
+  return out;
+}
+function holidayOf(ds){
+  var hs = (DATA && DATA.meta && DATA.meta.holidays) || [];
+  for (var i = 0; i < hs.length; i++) {
+    if (String(ds) >= hs[i].from && String(ds) <= hs[i].to) return hs[i];
+  }
+  return null;
+}
+function holidayDays(h){ return diffDays(h.to, h.from) + 1; }
+/* ---------- 补课日（调课） ---------- */
+function makeupOf(ds){
+  var ms = (DATA && DATA.meta && DATA.meta.makeups) || [];
+  for (var i = 0; i < ms.length; i++) if (ms[i] && ms[i].date === ds) return ms[i];
+  return null;
+}
+function mkParts(mk){
+  var p = (mk && mk.part) ? String(mk.part) : "all";
+  return (p === "evening" || p === "day") ? p : "all";
+}
+function mkLabel(mk){
+  if (!mk) return "";
+  var p = mkParts(mk), nm = WD[Number(mk.as_day)] || "?";
+  if (p === "evening") return "补" + nm + "晚";
+  if (p === "day") return "补" + nm + "白天";
+  return "补" + nm;
+}
+function mkDesc(mk){
+  if (!mk) return "";
+  var p = mkParts(mk), nm = WD[Number(mk.as_day)] || "?";
+  if (p === "evening") return "晚上照 " + nm + " 的课表上";
+  if (p === "day") return "白天照 " + nm + " 的课表上";
+  return "照 " + nm + " 的课表上";
+}
+function subjectsOn(ds){
+  var wk = weekOf(ds), wd = wdOf(ds), out = [];
+  if (wk < 1) return out;
+  var mk = makeupOf(ds), part = mk ? mkParts(mk) : "all";
+  var teachDay = (mk && Number(mk.as_day)) ? Number(mk.as_day) : wd;
+  function collect(day, minS, maxS){
+    for (var i = 0; i < DATA.courses.length; i++) {
+      var c = DATA.courses[i];
+      if (Number(c.day) !== day) continue;
+      if (parseWeeks(c.weeks).indexOf(wk) < 0) continue;
+      var sl = (c.slots || []).slice(0).sort(function (x, y) { return x - y; });
+      if (minS || maxS) sl = sl.filter(function (n) { return (!minS || n >= minS) && (!maxS || n <= maxS); });
+      if (!sl.length) continue;
+      out.push({ c: c, slots: sl });
+    }
+  }
+  if (!mk) collect(wd, 0, 0);
+  else if (part === "evening") { collect(wd, 1, 8); collect(teachDay, 9, 12); }
+  else if (part === "day") { collect(wd, 9, 12); collect(teachDay, 1, 8); }
+  else collect(teachDay, 0, 0);
+  out.sort(function (a, b) { return Math.min.apply(null, a.slots) - Math.min.apply(null, b.slots); });
+  return out;
+}
+function mkBlock(c, slots){
+  var a = slotTime(slots[0]), b = slotTime(slots[slots.length - 1]);
+  return {
+    name: c.name, room: c.room || "", teacher: c.teacher || "",
+    color: c.color || "#7A8290", slots: slots,
+    start: a ? a.start : "", end: b ? b.end : ""
+  };
+}
+function crossesBreak(a, b){ return (a === 4 && b === 5) || (a === 8 && b === 9); }
+function blocksOn(ds){
+  if (holidayOf(ds)) return [];
+  var list = subjectsOn(ds), out = [];
+  for (var i = 0; i < list.length; i++) {
+    var c = list[i].c;
+    var sl = list[i].slots;
+    var run = [sl[0]];
+    for (var j = 1; j < sl.length; j++) {
+      if (sl[j] === sl[j - 1] + 1 && !crossesBreak(sl[j - 1], sl[j])) run.push(sl[j]);
+      else { out.push(mkBlock(c, run)); run = [sl[j]]; }
+    }
+    out.push(mkBlock(c, run));
+  }
+  return out;
+}
+/* 一节一格：连堂的同一门课也拆开，不并在一起 */
+function slotBlocksOn(ds){
+  var merged = blocksOn(ds), out = [];
+  for (var i = 0; i < merged.length; i++) {
+    var b = merged[i];
+    for (var j = 0; j < b.slots.length; j++) {
+      var n = b.slots[j], st = slotTime(n);
+      out.push({
+        name: b.name, room: b.room, teacher: b.teacher, color: b.color,
+        slots: [n], start: st ? st.start : "", end: st ? st.end : ""
+      });
+    }
+  }
+  return out;
+}
+function hasClass(ds){ return blocksOn(ds).length > 0; }
+function showRoom(){ return !DATA.settings || DATA.settings.show_room !== false; }
+function showTeacher(){ return !DATA.settings || DATA.settings.show_teacher !== false; }
+function nowMin(){ var d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
+function minOf(s){ var m = /^(\d{1,2}):(\d{2})$/.exec(String(s || "")); return m ? (Number(m[1]) * 60 + Number(m[2])) : -1; }
+function esc(s){ return String(s == null ? "" : s).replace(/[<>&]/g, ""); }
+/* ---------- 主题（午夜金 / 草莓牛奶 / 雾薄荷，跟账本同一套色） ---------- */
+var SKINS = ["ink", "strawberry", "mint"];
+var SKIN_ALIAS = { dark: "ink", light: "strawberry", ink: "ink", strawberry: "strawberry", mint: "mint" };
+function skinKey(){
+  var t = (DATA && DATA.settings && DATA.settings.theme) || "ink";
+  return SKIN_ALIAS[String(t).toLowerCase()] || "ink";
+}
+function markDots(k){
+  var box = $("skinDots");
+  if (!box) return;
+  var ds = box.getElementsByClassName("dot");
+  for (var i = 0; i < ds.length; i++) {
+    ds[i].className = (ds[i].getAttribute("data-t") === k) ? "dot on" : "dot";
+  }
+}
+function applyTheme(){
+  var k = skinKey();
+  document.documentElement.setAttribute("data-theme", k);
+  markDots(k);
+}
+async function saveNow(){
+  try {
+    var h = host();
+    if (h && h.writeData) await h.writeData(JSON.stringify(DATA));
+  } catch (e) {}
+}
+function setSkin(k){
+  if (SKINS.indexOf(k) < 0) return;
+  DATA.settings = DATA.settings || {};
+  DATA.settings.theme = k;
+  applyTheme();
+  saveNow();
+}
+
+/* ---------- 月历 / 周条 ---------- */
+function renderCal(){
+  var d = parseD(SEL), y = d.getFullYear(), m = d.getMonth();
+  $("calTitle").textContent = y + "年" + (m + 1) + "月";
+  var first = new Date(y, m, 1);
+  var dow = first.getDay();
+  var lead = (dow === 0 ? 6 : dow - 1);
+  var days = new Date(y, m + 1, 0).getDate();
+  var h = "";
+  for (var i = 0; i < lead; i++) h += '<div class="dcell blank"></div>';
+  for (var n = 1; n <= days; n++) {
+    var ds = fmtD(new Date(y, m, n));
+    var cls = "dcell";
+    if (hasClass(ds)) cls += " has";
+    if (holidayOf(ds)) cls += " hol";
+    if (makeupOf(ds)) cls += " mk";
+    if (ds === TODAY) cls += " today";
+    if (ds === SEL) cls += " sel";
+    h += '<div class="' + cls + '" data-d="' + ds + '"><span class="dn">' + n + '</span><span class="dot"></span></div>';
+  }
+  $("calGrid").innerHTML = h;
+  $("wkRow").innerHTML = "<span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>";
+}
+
+function renderStrip(){
+  var ws = weekStartOf(SEL), h = "";
+  for (var i = 0; i < 7; i++) {
+    var ds = addD(ws, i), d = parseD(ds);
+    var cls = "dcell";
+    if (hasClass(ds)) cls += " has";
+    if (holidayOf(ds)) cls += " hol";
+    if (makeupOf(ds)) cls += " mk";
+    if (ds === TODAY) cls += " today";
+    if (ds === SEL) cls += " sel";
+    h += '<div class="' + cls + '" data-d="' + ds + '">'
+      + '<span class="dw">' + WD[i + 1].replace("周", "") + '</span>'
+      + '<span class="dn">' + (d.getMonth() + 1) + "/" + d.getDate() + '</span>'
+      + '<span class="dot"></span></div>';
+  }
+  $("calStrip").innerHTML = h;
+}
+
+/* ---------- 整周格子 ---------- */
+function findBlock(blocks, n){
+  for (var i = 0; i < blocks.length; i++) {
+    if (blocks[i].slots.indexOf(n) >= 0) return blocks[i];
+  }
+  return null;
+}
+
+function renderWeek(){
+  var ws = weekStartOf(SEL), wk = weekOf(SEL);
+  $("wkTitle").textContent = "第 " + wk + " 週　" + ws.slice(5).replace("-", "/") + "–" + addD(ws, 6).slice(5).replace("-", "/");
+  var cols = [];
+  for (var i = 0; i < 7; i++) {
+    var ds = addD(ws, i);
+    cols.push({ ds: ds, blocks: blocksOn(ds), hol: holidayOf(ds), mk: makeupOf(ds) });
+  }
+  var h = '<div></div>';
+  for (var c = 0; c < 7; c++) {
+    var d = parseD(cols[c].ds);
+    h += '<div class="wh' + (cols[c].ds === TODAY ? " today" : "") + (cols[c].hol ? " hol" : "") + (cols[c].mk ? " mk" : "") + '"><b>' + WD[c + 1] + (cols[c].hol ? " 🎈" : "") + (cols[c].mk ? " 📌" + mkLabel(cols[c].mk) : "") + '</b><i>'
+      + (d.getMonth() + 1) + "/" + d.getDate() + '</i></div>';
+  }
+  for (var n = 1; n <= 12; n++) {
+    var st = slotTime(n);
+    h += '<div class="gut"><b>' + n + '</b><i>' + (st ? st.start : "") + '</i><i>' + (st ? st.end : "") + '</i></div>';
+    for (var c2 = 0; c2 < 7; c2++) {
+      var b = findBlock(cols[c2].blocks, n);
+      h += '<div class="cell' + (cols[c2].ds === TODAY ? " today" : "") + (cols[c2].hol ? " hol" : "") + '">';
+      if (b) {
+        var room = (showRoom() && b.room) ? esc(b.room) : "";
+        h += '<div class="c" style="--cc:' + b.color + '" data-d="' + cols[c2].ds + '">'
+          + '<span class="cn">' + esc(b.name) + '</span>'
+          + (room ? '<span class="cr">' + room + '</span>' : '')
+          + '</div>';
+      }
+      h += '</div>';
+    }
+    if (n === 4) h += '<div class="sep">午 休</div>';
+    if (n === 8) h += '<div class="sep">晚 休</div>';
+  }
+  $("wkGrid").innerHTML = h;
+}
+
+/* ---------- 当天卡片 ---------- */
+function renderDay(){
+  var ds = SEL, wk = weekOf(ds), wd = wdOf(ds), d = parseD(ds), merged = blocksOn(ds);
+  var blocks = slotBlocksOn(ds);
+  var isToday = (ds === TODAY);
+  var totalSlots = blocks.length;
+  var courseN = 0, seenNames = [];
+  for (var mi = 0; mi < merged.length; mi++) {
+    if (seenNames.indexOf(merged[mi].name) < 0) { seenNames.push(merged[mi].name); courseN++; }
+  }
+  var head = '<b>' + (d.getMonth() + 1) + '月' + d.getDate() + '日</b>' + WD[wd] + ' · 第' + wk + '周';
+  var hol = holidayOf(ds);
+  var mk = makeupOf(ds);
+  if (mk) head += '　📌' + mkLabel(mk);
+  if (hol) head += '　🎈放假';
+  if (blocks.length) head += '　' + courseN + ' 门 · ' + totalSlots + ' 节';
+  $("dayTitle").innerHTML = head;
+  if (hol) {
+    var hidx = diffDays(ds, hol.from) + 1, hleft = diffDays(hol.to, ds);
+    $("dayList").innerHTML = '<div class="card holc"><div class="bar" style="--cc:var(--hol)"></div><div class="cbody">'
+      + '<div class="cn2">🎈 放假中 —— ' + esc(hol.name) + '</div>'
+      + '<div class="cm">' + hol.from + ' ~ ' + hol.to + '　共 ' + holidayDays(hol) + ' 天</div>'
+      + '<div class="cm2">今天是假期第 ' + hidx + ' 天' + (hleft > 0 ? '，还剩 ' + hleft + ' 天' : '（假期最后一天）') + '</div>'
+      + '</div></div>';
+    return;
+  }
+  if (!blocks.length) {
+    $("dayList").innerHTML = '<div class="empty"><span>🛏</span>'
+      + (isToday ? "今天没课，睡到自然醒" : "这天没课") + '</div>';
+    return;
+  }
+  var h = "";
+  if (mk) h += '<div class="card" style="--cc:var(--acc)"><div class="bar"></div><div class="cbody"><div class="cn2">📌 补课日 —— ' + mkDesc(mk) + '</div><div class="cm2">这天按补课安排排课，自己原本的课照上</div></div></div>';
+  for (var j = 0; j < blocks.length; j++) {
+    var b = blocks[j];
+    var tag = "";
+    if (isToday) {
+      var nw = nowMin(), s0 = minOf(b.start), e0 = minOf(b.end);
+      if (nw >= e0) tag = '<span class="tag done">已下课</span>';
+      else if (nw >= s0) tag = '<span class="tag">正在上</span>';
+      else tag = '<span class="tag">还有 ' + (s0 - nw) + ' 分钟</span>';
+    }
+    var meta2 = [];
+    if (showRoom() && b.room) meta2.push("📍 " + esc(b.room));
+    if (showTeacher() && b.teacher) meta2.push("👤 " + esc(b.teacher));
+    h += '<div class="card" style="--cc:' + b.color + '"><div class="bar"></div><div class="cbody">'
+      + '<div class="cn2">' + esc(b.name) + tag + '</div>'
+      + '<div class="cm">' + slotLabel(b.slots) + '　🕐 ' + b.start + "–" + b.end + '</div>'
+      + (meta2.length ? '<div class="cm2">' + meta2.join("　") + '</div>' : '')
+      + '</div></div>';
+  }
+  $("dayList").innerHTML = h;
+}
+
+function renderFoot(){
+  var c = (DATA.courses || []).length;
+  var wk = weekOf(TODAY);
+  if (!DATA.meta.slots || !DATA.meta.slots.length) {
+    $("foot").textContent = "⚠️ 节次时间没读到，格子里会是空的";
+    return;
+  }
+  var txt = [];
+  if (DATA.meta.class_name) txt.push(DATA.meta.class_name);
+  if (DATA.meta.term) txt.push(DATA.meta.term);
+  txt.push("共 " + c + " 门课");
+  if (wk >= 1) txt.push("今天第 " + wk + " 周");
+  $("foot").textContent = txt.join(" · ");
+}
+
+function renderAll(){ renderCal(); renderStrip(); renderWeek(); renderDay(); renderFoot(); }
+
+/* ---------- 交互 ---------- */
+function setView(v){
+  VIEW = v;
+  var w = (v === "week");
+  $("weekView").className = w ? "" : "hidden";
+  $("dayView").className = w ? "hidden" : "";
+  $("tabWeek").className = w ? "on" : "";
+  $("tabDay").className = w ? "" : "on";
+  renderAll();
+}
+
+function toggled(){
+  CALOPEN = !CALOPEN;
+  document.body.className = CALOPEN ? "calopen" : "calclosed";
+  $("calToggle").className = CALOPEN ? "toggle up" : "toggle";
+  renderAll();
+}
+
+function shiftMonth(delta){
+  var d = parseD(SEL), y = d.getFullYear(), m = d.getMonth() + delta, day = d.getDate();
+  var last = new Date(y, m + 1, 0).getDate();
+  if (day > last) day = last;
+  SEL = fmtD(new Date(y, m, day));
+  renderAll();
+}
+
+function onPick(e){
+  var t = e.target;
+  while (t && t !== document.body) {
+    if (t.getAttribute && t.getAttribute("data-d")) {
+      var ds = t.getAttribute("data-d");
+      var isCourse = t.classList && t.classList.contains("c");
+      SEL = ds;
+      if (isCourse) setView("day");
+      else renderAll();
+      return;
+    }
+    t = t.parentNode;
+  }
+}
+
+function wire(){
+  $("mPrev").onclick = function(){ if (CALOPEN) shiftMonth(-1); else { SEL = addD(SEL, -7); renderAll(); } };
+  $("mNext").onclick = function(){ if (CALOPEN) shiftMonth(1); else { SEL = addD(SEL, 7); renderAll(); } };
+  $("wPrev").onclick = function(){ SEL = addD(SEL, -7); renderAll(); };
+  $("wNext").onclick = function(){ SEL = addD(SEL, 7); renderAll(); };
+  $("calToggle").onclick = toggled;
+  $("tabWeek").onclick = function(){ setView("week"); };
+  $("tabDay").onclick = function(){ setView("day"); };
+  $("calGrid").addEventListener("click", onPick);
+  $("calStrip").addEventListener("click", onPick);
+  $("wkGrid").addEventListener("click", onPick);
+  var sd = $("skinDots");
+  if (sd) sd.addEventListener("click", function(e){
+    var t = e.target;
+    if (t && t.getAttribute && t.getAttribute("data-t")) setSkin(t.getAttribute("data-t"));
+  });
+}
+
+/* ---------- 启动 ---------- */
+function blank(){
+  return {
+    meta: { week1_monday: "2026-08-24", weeks_total: 18, slots: [] },
+    settings: { theme: "ink", show_room: true, show_teacher: true },
+    courses: []
+  };
+}
+
+async function load(){
+  TODAY = fmtD(new Date());
+  if (!SEL) SEL = TODAY;
+  try {
+    var raw = host() ? await host().readData() : null;
+    DATA = raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    DATA = null;
+  }
+  if (!DATA || !DATA.courses || !DATA.courses.length) {
+    if (!DATA) DATA = blank();
+    if (!DATA.courses) DATA.courses = [];
+  }
+  DATA.meta = DATA.meta || {};
+  DATA.settings = DATA.settings || {};
+  if (!DATA.meta.slots) DATA.meta.slots = [];
+  applyTheme();
+  document.body.className = CALOPEN ? "calopen" : "calclosed";
+  $("calToggle").className = CALOPEN ? "toggle up" : "toggle";
+  setView(VIEW);
+}
+
+wire();
+document.addEventListener("DOMContentLoaded", load);
+window.addEventListener("focus", load);
+</script>
+</body>
+</html>
